@@ -13,7 +13,7 @@ public class Employee {
             this.firstName = firstName;
             this.lastName = lastName;
             this.missedDays = missedDays;
-            this.leaveRequest = leaveRequest;
+            this.leaveRequest = request;
             this.employeeID = employeeIDCounter++;
     }
 
