@@ -36,19 +36,4 @@ public class LeaveRequest {
         this.totalDays = (int) (endDate.toEpochDay() - startDate.toEpochDay()) + 1;
     }
 
-    public LocalDate getStartDate() {
-        return startDate;
-    }
-    
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
-    public boolean isApproved() {
-        return approved;
-    }
-
-    public int getTotalDays() {
-        return totalDays;
-    }
 }
