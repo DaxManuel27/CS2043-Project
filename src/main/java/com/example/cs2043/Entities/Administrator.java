@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "administrators")
+@DiscriminatorValue("ADMIN")
 @Getter
 @Setter
 @NoArgsConstructor

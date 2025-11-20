@@ -9,6 +9,8 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "Employees")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "EMPLOYEE_TYPE")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,7 +27,8 @@ public class Employee {
     private double salary;
     @Column
     private int missedDays;
-    @Column
+    @OneToOne
+    @JoinColumn(name = "leaveRequestID")
     private LeaveRequest leaveRequest;
 
 
