@@ -1,24 +1,48 @@
-// Utility Functions
+// --- Configuration ---
+/**
+ * Base URL for the backend API server.
+ */
+const BASE_URL = 'http://localhost:8080';
 
-function generateUniqueId() {
-    return 'id-' + Math.random().toString(36).substr(2, 9);
+// --- Local Data Management (Simulation for Write Operations) ---
+
+/**
+ * Ensures initial dummy data exists in local storage if not present.
+ */
+function initializeLocalData() {
+    if (!localStorage.getItem('employees')) {
+        const initialEmployees = [
+            { id: 'emp-001', firstName: 'Alice', lastName: 'Johnson', email: 'alice@company.com', password: 'admin', role: 'Employee', salary: 60000, missedDays: 5 },
+            { id: 'emp-002', firstName: 'Bob', lastName: 'Smith', email: 'bob@company.com', password: 'password', role: 'Employee', salary: 75000, missedDays: 2 }
+        ];
+        localStorage.setItem('employees', JSON.stringify(initialEmployees));
+    }
+    if (!localStorage.getItem('leaveRequests')) {
+        const initialRequests = [
+            { id: 101, employeeId: 'emp-001', employeeName: 'Alice Johnson', type: 'Vacation', startDate: '2025-10-01', endDate: '2025-10-05', reason: 'Annual Leave', status: 'Pending' }
+        ];
+        localStorage.setItem('leaveRequests', JSON.stringify(initialRequests));
+    }
+}
+initializeLocalData(); // Run on script load
+
+function getEmployeesLocal() {
+    return JSON.parse(localStorage.getItem('employees')) || [];
 }
 
-function getEmployees() {
-    return JSON.parse(localStorage.getItem("employees")) || [];
+function setEmployeesLocal(employees) {
+    localStorage.setItem('employees', JSON.stringify(employees));
 }
 
-function setEmployees(employees) {
-    localStorage.setItem("employees", JSON.stringify(employees));
+function getLeaveRequestsLocal() {
+    return JSON.parse(localStorage.getItem('leaveRequests')) || [];
 }
 
-function getLeaves() {
-    return JSON.parse(localStorage.getItem("leaveRequests")) || [];
+function setLeaveRequestsLocal(leaves) {
+    localStorage.setItem('leaveRequests', JSON.stringify(leaves));
 }
 
-function setLeaves(leaves) {
-    localStorage.setItem("leaveRequests", JSON.stringify(leaves));
-}
+// --- Utility Functions ---
 
 function getCurrentUser() {
     return JSON.parse(localStorage.getItem("currentUser"));
@@ -28,6 +52,9 @@ function setCurrentUser(user) {
     localStorage.setItem("currentUser", JSON.stringify(user));
 }
 
+/**
+ * Checks if a user is authenticated and has the required role.
+ */
 function checkAuth(role) {
     const user = getCurrentUser();
     if (!user) {
@@ -39,75 +66,69 @@ function checkAuth(role) {
         window.location.href = "dashboard.html";
         return;
     }
-    if (role === 'Employee' && user.role !== 'Employee') {
-        alert("Access denied.");
-        window.location.href = "dashboard.html";
-        return;
+}
+
+// --- API Access Functions (READ Operations - Uses Backend) ---
+
+/**
+ * Generic function to fetch data from the backend API.
+ */
+async function fetchData(endpoint) {
+    try {
+        const response = await fetch(`${BASE_URL}${endpoint}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        // Fallback or error message for failed backend connection
+        console.error(`Failed to load data from ${endpoint}:`, error);
+        alert("Failed to load data from server. Please ensure the backend is running. Using local data simulation.");
+        // IMPORTANT: If API fails, return the local data simulation for testing continuity.
+        if (endpoint.includes('employees')) return getEmployeesLocal();
+        if (endpoint.includes('leave-requests')) return getLeaveRequestsLocal();
+        return [];
     }
 }
 
-// --- Initialization ---
-
-function initApp() {
-    const adminExists = localStorage.getItem("adminUser");
-    const employeesExist = localStorage.getItem("employees");
-    const leavesExist = localStorage.getItem("leaveRequests");
-
-    if (!adminExists) {
-        const adminUser = { id: generateUniqueId(), firstName: "System", lastName: "Admin", email: "admin@company.com", password: "admin", role: "Admin", salary: 0 };
-        localStorage.setItem("adminUser", JSON.stringify(adminUser));
-    }
-
-    if (!employeesExist) {
-        const sampleEmployees = [
-            { id: generateUniqueId(), firstName: "Alice", lastName: "Wang", email: "alice@company.com", password: "employee", role: "Employee", salary: 60000, missedDays: 2 },
-            { id: generateUniqueId(), firstName: "Bob", lastName: "Smith", email: "bob@company.com", password: "employee", role: "Employee", salary: 55000, missedDays: 1 },
-        ];
-        setEmployees(sampleEmployees);
-    }
-    
-    if (!leavesExist) {
-        const currentEmployees = getEmployees(); 
-        const initialLeaves = [
-            { id: generateUniqueId(), employeeId: currentEmployees[0].id, employeeName: "Alice Wang", type: "Vacation", startDate: "2025-12-01", endDate: "2025-12-05", reason: "Annual leave.", status: "Pending" },
-            { id: generateUniqueId(), employeeId: currentEmployees[1].id, employeeName: "Bob Smith", type: "Sick", startDate: "2025-11-25", endDate: "2025-11-25", reason: "Flu.", status: "Approved" },
-        ];
-        setLeaves(initialLeaves);
-    }
+async function fetchAllEmployees() {
+    // Corresponds to the backend GET /dashboard/employees
+    return await fetchData('/dashboard/employees');
 }
-// Initialize application data structure
-initApp();
 
+async function fetchAllLeaveRequests() {
+    // Corresponds to the backend GET /dashboard/leave-requests
+    return await fetchData('/dashboard/leave-requests');
+}
 
-// Authentication Functions
+// --- Authentication Functions ---
 
+/**
+ * Performs login validation using fetched employee data.
+ */
 async function apiLogin(username, password) {
-    // Gets user credentials from local storage. Replace with HTTP request after u guys finish backend and database.
-    const adminUser = JSON.parse(localStorage.getItem("adminUser"));
-    const employees = getEmployees();
-
-    let user = null;
-
-    if (username === adminUser.email && password === adminUser.password) {
-        user = adminUser;
-    } else {
-        user = employees.find(emp => emp.email === username && emp.password === password);
+    // Admin credentials check
+    if (username === "admin@company.com" && password === "admin") {
+        return { success: true, user: { id: 'admin-001', firstName: "System", lastName: "Admin", email: "admin@company.com", role: "Admin" } };
     }
+
+    // Fetch all employees to validate standard employee login (Uses API, or local data as fallback)
+    const employees = await fetchAllEmployees();
+    const user = employees.find(emp => emp.email === username && emp.password === password);
 
     if (user) {
-        return { success: true, user: user };
+        return { success: true, user: { ...user, role: "Employee" } };
     } else {
         return { success: false, message: "Invalid email or password." };
     }
 }
-
 
 async function handleLogin(event) {
     event.preventDefault();
     const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
     const errorMsg = document.getElementById("loginError");
-    errorMsg.textContent = "Logging in..."; 
+    errorMsg.textContent = "Logging in...";
 
     const result = await apiLogin(username, password);
 
@@ -127,7 +148,7 @@ function handleLogout() {
 
 // --- Dashboard Logic ---
 
-function loadDashboard() {
+async function loadDashboard() {
     const user = getCurrentUser();
     if (!user) {
         window.location.href = "index.html";
@@ -139,31 +160,39 @@ function loadDashboard() {
     if (user.role === 'Admin') {
         document.getElementById("adminView").style.display = 'block';
         document.getElementById("employeeView").style.display = 'none';
-        displayEmployees();
-        displayLeaveRequestsAdmin();
+
+        const employees = await fetchAllEmployees();
+        const leaves = await fetchAllLeaveRequests();
+
+        displayEmployees(employees);
+        displayLeaveRequestsAdmin(leaves);
+
     } else {
         document.getElementById("adminView").style.display = 'none';
         document.getElementById("employeeView").style.display = 'block';
-        displayMyLeaveHistory(user.id);
+
+        const leaves = await fetchAllLeaveRequests();
+
+        displayMyLeaveHistory(user.id, leaves);
     }
 }
 
 // Admin Views
 
-function displayEmployees() {
+function displayEmployees(employees) {
     const tableBody = document.getElementById("employeeTableBody");
     if (!tableBody) return;
 
-    const employees = getEmployees().filter(e => e.role === 'Employee'); 
+    const displayList = employees.filter(e => e.role !== 'Admin');
     tableBody.innerHTML = "";
 
-    employees.forEach((emp, index) => {
+    displayList.forEach((emp, index) => {
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${index + 1}</td>
             <td>${emp.firstName} ${emp.lastName}</td>
             <td>${emp.email}</td>
-            <td>$${emp.salary.toLocaleString()}</td>
+            <td>$${(emp.salary || 0).toLocaleString()}</td>
             <td>
                 <button class="button-edit" onclick="editEmployee('${emp.id}')">Edit</button>
             </td>
@@ -172,11 +201,11 @@ function displayEmployees() {
     });
 }
 
-function displayLeaveRequestsAdmin() {
+function displayLeaveRequestsAdmin(allLeaves) {
     const tableBody = document.getElementById("leaveTableBody");
     if (!tableBody) return;
-    
-    const pendingLeaves = getLeaves().filter(l => l.status === 'Pending');
+
+    const pendingLeaves = allLeaves.filter(l => l.status === 'Pending');
     tableBody.innerHTML = "";
 
     if (pendingLeaves.length === 0) {
@@ -187,7 +216,7 @@ function displayLeaveRequestsAdmin() {
     pendingLeaves.forEach((leave) => {
         const row = document.createElement("tr");
         row.innerHTML = `
-            <td>${leave.employeeName}</td>
+            <td>${leave.employeeName || (leave.employee ? leave.employee.firstName + ' ' + leave.employee.lastName : 'N/A')}</td>
             <td>${leave.type}</td>
             <td>${leave.startDate} to ${leave.endDate}</td>
             <td>${leave.reason}</td>
@@ -200,28 +229,34 @@ function displayLeaveRequestsAdmin() {
     });
 }
 
+/**
+ * Uses local storage to update leave status (POST/PUT simulation).
+ */
 async function updateLeaveStatus(leaveId, status) {
-    // Asynchronous update of leave status
-    let leaves = getLeaves();
-    const index = leaves.findIndex(l => l.id === leaveId);
+    let leaves = getLeaveRequestsLocal();
+    const index = leaves.findIndex(l => l.id == leaveId);
 
     if (index !== -1) {
         leaves[index].status = status;
-        setLeaves(leaves);
-        alert(`Leave request ${leaveId} has been ${status.toLowerCase()}.`);
-        loadDashboard(); 
+        setLeaveRequestsLocal(leaves);
+        alert(`Leave request ${leaveId} status updated to ${status}.`);
+    } else {
+        alert(`Leave request ${leaveId} not found locally.`);
     }
+
+    // Refresh the dashboard to show the change
+    loadDashboard();
 }
 
 // Employee Views
 
-function displayMyLeaveHistory(employeeId) {
+function displayMyLeaveHistory(employeeId, allLeaves) {
     const tableBody = document.getElementById("myLeaveTableBody");
     if (!tableBody) return;
 
-    const myLeaves = getLeaves().filter(l => l.employeeId === employeeId);
+    const myLeaves = allLeaves.filter(l => l.employeeId == employeeId);
     tableBody.innerHTML = "";
-    
+
     if (myLeaves.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center;">You have no submitted leave requests.</td></tr>';
         return;
@@ -241,13 +276,16 @@ function displayMyLeaveHistory(employeeId) {
 
 // Leave Request Form
 
+/**
+ * Uses local storage to submit a new leave request (POST simulation).
+ */
 async function submitLeaveRequest(event) {
-    // Asynchronous submission of a new leave request
     event.preventDefault();
-    const form = event.target;
     const user = getCurrentUser();
+    const form = event.target;
 
     const newRequest = {
+        id: Date.now(), // Simple unique ID
         employeeId: user.id,
         employeeName: `${user.firstName} ${user.lastName}`,
         type: form.leaveType.value,
@@ -257,11 +295,11 @@ async function submitLeaveRequest(event) {
         status: 'Pending'
     };
 
-    let leaves = getLeaves();
-    leaves.push({ id: generateUniqueId(), ...newRequest });
-    setLeaves(leaves);
-    
-    alert("Leave request submitted successfully. Waiting for admin approval.");
+    let leaves = getLeaveRequestsLocal();
+    leaves.push(newRequest);
+    setLeaveRequestsLocal(leaves);
+
+    alert("Leave request submitted successfully!");
     window.location.href = "dashboard.html";
 }
 
@@ -272,19 +310,20 @@ function editEmployee(id) {
     window.location.href = "employee-form.html";
 }
 
-function loadEmployeeForm() {
-    checkAuth('Admin'); 
+async function loadEmployeeForm() {
+    checkAuth('Admin');
     const id = localStorage.getItem("editEmployeeId");
     const form = document.getElementById("employeeForm");
-    
+
     if (!id) {
         document.querySelector('h1').textContent = "Add New Employee";
         form.querySelector('button[type="submit"]').textContent = "Add Employee";
-        return; 
+        return;
     }
 
-    const employees = getEmployees();
-    const emp = employees.find(e => e.id === id);
+    // Fetch data for pre-filling the form (Uses API, or local data as fallback)
+    const employees = await fetchAllEmployees();
+    const emp = employees.find(e => e.id == id);
 
     if (emp) {
         document.querySelector('h1').textContent = "Edit Employee";
@@ -300,52 +339,56 @@ function loadEmployeeForm() {
     }
 }
 
+/**
+ * Uses local storage to save or update employee data (POST/PUT simulation).
+ */
 async function saveEmployee(event) {
-    // Asynchronous save/update of employee data
     event.preventDefault();
     const form = event.target;
-    let employees = getEmployees();
-    const id = localStorage.getItem("editEmployeeId");
-
-    const employeeData = {
+    const isEdit = localStorage.getItem("editEmployeeId");
+    
+    let employees = getEmployeesLocal();
+    const newEmployee = {
         firstName: form.firstName.value,
         lastName: form.lastName.value,
         email: form.email.value,
         password: form.password.value,
         salary: parseFloat(form.salary.value),
         missedDays: parseInt(form.missedDays.value) || 0,
-        role: "Employee"
+        role: 'Employee'
     };
 
-    if (id) {
-        const index = employees.findIndex(e => e.id === id);
+    if (isEdit) {
+        // Update existing
+        const index = employees.findIndex(e => e.id == isEdit);
         if (index !== -1) {
-            employees[index] = { ...employees[index], ...employeeData };
-            localStorage.removeItem("editEmployeeId");
+            employees[index] = { ...employees[index], ...newEmployee };
+            alert("Employee data updated successfully locally.");
         }
     } else {
-        if (employees.some(e => e.email === employeeData.email)) {
-            alert("Error: An employee with this email already exists.");
-            return;
-        }
-        
-        employees.push({ id: generateUniqueId(), ...employeeData });
+        // Add new
+        newEmployee.id = `emp-${Date.now()}`;
+        employees.push(newEmployee);
+        alert("New employee added successfully locally.");
     }
 
-    setEmployees(employees);
+    setEmployeesLocal(employees);
+    localStorage.removeItem("editEmployeeId");
     window.location.href = "dashboard.html";
 }
 
-// Report Viewer
+// Report Viewer (Uses only fetched data, already functional)
 
-function generateReport(type) {
+async function generateReport(type) {
     checkAuth('Admin');
-    const employees = getEmployees();
-    const leaves = getLeaves();
+
+    const employees = await fetchAllEmployees();
+    const leaves = await fetchAllLeaveRequests();
+
     let csvContent = "data:text/csv;charset=utf-8,";
     let fileName = "";
     let data = [];
-    
+
     switch (type) {
         case "EmployeeList":
             fileName = "Employee_List.csv";
@@ -353,30 +396,28 @@ function generateReport(type) {
                 ID: e.id,
                 Name: `${e.firstName} ${e.lastName}`,
                 Email: e.email,
-                Role: e.role,
+                Role: e.role || "Employee",
                 Salary: e.salary,
                 MissedDays: e.missedDays || 0
             }));
             break;
-
         case "LeaveSummary":
             fileName = "All_Leave_Summary.csv";
             data = leaves.map(l => ({
                 ID: l.id,
-                Employee: l.employeeName,
+                Employee: l.employeeName || (l.employee ? l.employee.firstName + ' ' + l.employee.lastName : 'N/A'),
                 Type: l.type,
                 StartDate: l.startDate,
                 EndDate: l.endDate,
-                Reason: l.reason.replace(/,/g, ';'), 
+                Reason: l.reason.replace(/,/g, ';'),
                 Status: l.status
             }));
             break;
-            
         case "PendingLeaves":
             fileName = "Pending_Leave_Summary.csv";
             data = leaves.filter(l => l.status === 'Pending').map(l => ({
                 ID: l.id,
-                Employee: l.employeeName,
+                Employee: l.employeeName || (l.employee ? l.employee.firstName + ' ' + l.employee.lastName : 'N/A'),
                 Type: l.type,
                 StartDate: l.startDate,
                 EndDate: l.endDate,
