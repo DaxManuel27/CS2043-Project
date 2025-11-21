@@ -6,5 +6,5 @@ import com.example.cs2043.Entities.Administrator;
 
 @Repository
 public interface AdministratorRepository extends JpaRepository<Administrator, Integer> {
-    
+	
 }

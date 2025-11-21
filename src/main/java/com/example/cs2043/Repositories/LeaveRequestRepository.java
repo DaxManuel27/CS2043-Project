@@ -6,6 +6,5 @@ import com.example.cs2043.Entities.LeaveRequest;
 
 @Repository
 public interface LeaveRequestRepository extends JpaRepository<LeaveRequest, Integer> {
-
-    
+	
 }

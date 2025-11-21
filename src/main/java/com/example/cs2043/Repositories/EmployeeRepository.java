@@ -6,5 +6,5 @@ import com.example.cs2043.Entities.Employee;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Integer> {
-    
+	
 }
