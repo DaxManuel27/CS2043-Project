@@ -9,4 +9,8 @@ public class MainController {
     public String index() {
         return "index.html";
     }
+    @RequestMapping("/dashboard")
+    public String dashboard() {
+        return "dashboard.html";
+    }
 }

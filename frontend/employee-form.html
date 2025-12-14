@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Form - Employee Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body onload="loadEmployeeForm()">
+    <header>
+        <h1>Employee Form</h1>
+        <button class="button-secondary" onclick="handleLogout()">Logout</button>
+    </header>
+
+    <main class="form-container">
+        <form id="employeeForm" onsubmit="saveEmployee(event)">
+            <div class="form-group">
+                <label for="firstName">First Name:</label>
+                <input type="text" id="firstName" name="firstName" required>
+            </div>
+            <div class="form-group">
+                <label for="lastName">Last Name:</label>
+                <input type="text" id="lastName" name="lastName" required>
+            </div>
+            <!-- Auth fields - only shown for new employees -->
+            <div id="authFields">
+                <div class="form-group">
+                    <label for="email">Email (Login):</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" minlength="6" required>
+                    <small style="color: #666;">Minimum 6 characters</small>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="salary">Salary:</label>
+                <input type="number" step="0.01" id="salary" name="salary" required>
+            </div>
+            <div class="form-group">
+                <label for="missedDays">Missed Days:</label>
+                <input type="number" id="missedDays" name="missedDays" value="0">
+            </div>
+            <button type="submit" class="button-primary">Save Employee</button>
+            <button type="button" class="button-secondary" onclick="window.location.href='dashboard.html'">Cancel</button>
+        </form>
+    </main>
+
+    <footer>
+        <p class="footer-text">Employee Management System</p>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

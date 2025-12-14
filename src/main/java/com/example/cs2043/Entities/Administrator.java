@@ -12,10 +12,9 @@ import lombok.Setter;
 @NoArgsConstructor
 public class Administrator extends Employee {
 
-    public Administrator(String firstName, String lastName, double salary, int missedDays, LeaveRequest request) {
-        super(firstName, lastName, salary, missedDays, request);
+    public Administrator(String firstName, String lastName, double salary, int missedDays) {
+        super(firstName, lastName, salary, missedDays);
     }
-    //most of these are temporary placeholders for now untill we set up controllers for the front end integration
 
     public void editFullEmployee(Employee e, String firstName, String lastName, double salary, int missedDays) {
         e.setFirstName(firstName);
@@ -40,7 +39,7 @@ public class Administrator extends Employee {
         e.setMissedDays(missedDays);
     }
 
-    public void approveLeave(Employee e, boolean approved) {
-        e.getLeaveRequest().setApproved(approved);
+    public void approveLeave(LeaveRequest leaveRequest, boolean approved) {
+        leaveRequest.setApproved(approved);
     }
 }

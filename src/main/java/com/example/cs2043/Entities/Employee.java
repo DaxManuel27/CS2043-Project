@@ -1,6 +1,8 @@
 package com.example.cs2043.Entities;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -27,18 +29,17 @@ public class Employee {
     private double salary;
     @Column
     private int missedDays;
-    @OneToOne
-    @JoinColumn(name = "leaveRequestID")
-    private LeaveRequest leaveRequest;
+    
+    // One employee can have many leave requests
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<LeaveRequest> leaveRequests = new ArrayList<>();
 
 
-    public Employee(String firstName, String lastName, double salary, int missedDays, LeaveRequest request) {
+    public Employee(String firstName, String lastName, double salary, int missedDays) {
             this.firstName = firstName;
             this.lastName = lastName;
             this.salary = salary;
             this.missedDays = missedDays;
-            this.leaveRequest = request;
-            
     }
 
     public void displayInfo() {
@@ -47,19 +48,21 @@ public class Employee {
         System.out.println("First Name: " + this.firstName);
         System.out.println("Last Name: " + this.lastName);
         System.out.println("Missed Days: " + this.missedDays);
-        if (this.leaveRequest != null) {
-            System.out.println("Leave Request ID: " + this.leaveRequest.getRequestID());
-            System.out.println("Leave Start Date: " + this.leaveRequest.getStartDate());
-            System.out.println("Leave End Date: " + this.leaveRequest.getEndDate());
-            System.out.println("Leave Approved: " + this.leaveRequest.isApproved());
-            System.out.println("Leave Total Days: " + this.leaveRequest.getTotalDays());
+        if (this.leaveRequests != null && !this.leaveRequests.isEmpty()) {
+            System.out.println("Leave Requests: " + this.leaveRequests.size());
+            for (LeaveRequest lr : this.leaveRequests) {
+                System.out.println("  - Request ID: " + lr.getRequestID() + 
+                    ", Dates: " + lr.getStartDate() + " to " + lr.getEndDate() +
+                    ", Approved: " + lr.isApproved());
+            }
         }
     }
 
     public LeaveRequest requestLeave(String startDate, String endDate) {
         LocalDate start = LocalDate.parse(startDate);
         LocalDate end = LocalDate.parse(endDate);
-        LeaveRequest lr = new LeaveRequest(start, end);
+        LeaveRequest lr = new LeaveRequest(start, end, this);
+        this.leaveRequests.add(lr);
         return lr;
     }
 
